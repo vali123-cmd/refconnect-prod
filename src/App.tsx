@@ -23,6 +23,7 @@ import Delegations from './pages/Delegations';
 import Notifications from './pages/Notifications';
 import AdminDashboard from './pages/AdminDashboard';
 import Chats from './pages/Chats';
+import PostPage from './pages/PostPage';
 
 function App() {
   return (
@@ -56,6 +57,7 @@ function App() {
 
                     <Route path="/chats" element={<Chats />} />
                     <Route path="/chats/:chatId" element={<Chats />} />
+                    <Route path="/post/:postId" element={<PostPage />} />
 
                     {/* Add more routes here later */}
                     <Route path="*" element={<div className="p-8 text-center text-muted-foreground">404 - Page Not Found</div>} />
