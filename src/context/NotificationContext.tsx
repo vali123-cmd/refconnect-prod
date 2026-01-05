@@ -219,15 +219,11 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             allNotifications.sort((a, b) => b.date.getTime() - a.date.getTime());
             setNotifications(allNotifications);
 
-            // Calculate unread count
-            const lastViewedAt = localStorage.getItem('notificationsLastViewedAt');
-            if (lastViewedAt) {
-                const viewedDate = new Date(lastViewedAt);
-                const count = allNotifications.filter(n => n.date > viewedDate).length;
-                setUnreadCount(count);
-            } else {
-                setUnreadCount(allNotifications.length);
-            }
+            // Calculate unread count based on total - seen
+            const seenCountStr = localStorage.getItem('notificationsSeenCount');
+            const seenCount = seenCountStr ? parseInt(seenCountStr, 10) : 0;
+            // Ensure we don't show negative if localStorage has more than current fetch
+            setUnreadCount(Math.max(0, allNotifications.length - seenCount));
 
         } finally {
             setIsLoading(false);
@@ -247,8 +243,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }, [user, getPendingRequests]); // Re-fetch if user changes
 
     const markAsViewed = () => {
-        const now = new Date().toISOString();
-        localStorage.setItem('notificationsLastViewedAt', now);
+        const total = notifications.length;
+        localStorage.setItem('notificationsSeenCount', total.toString());
         setUnreadCount(0);
     };
 
