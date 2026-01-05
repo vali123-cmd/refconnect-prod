@@ -18,6 +18,12 @@ interface NotificationItem {
     };
     content?: string;
     entityId?: string; // postId or followRequestId
+    postContext?: {
+        postId: string;
+        mediaUrl?: string;
+        mediaType?: string;
+        text?: string;
+    };
     isRead?: boolean;
 }
 
@@ -125,6 +131,13 @@ export default function Notifications() {
                     const posts: any[] = profileRes.data.posts || [];
 
                     for (const post of posts) {
+                        const postCtx = {
+                            postId: post.postId,
+                            mediaUrl: post.mediaUrl,
+                            mediaType: post.mediaType,
+                            text: post.description
+                        };
+
                         // COMMENTS
                         if (post.comments && Array.isArray(post.comments)) {
                             for (const comment of post.comments) {
@@ -161,7 +174,8 @@ export default function Notifications() {
                                         imageUrl: actorImage
                                     },
                                     content: comment.content,
-                                    entityId: post.postId
+                                    entityId: post.postId,
+                                    postContext: postCtx
                                 });
                             }
                         }
@@ -219,7 +233,8 @@ export default function Notifications() {
                                         username: actorUsername,
                                         imageUrl: actorImage
                                     },
-                                    entityId: post.postId
+                                    entityId: post.postId,
+                                    postContext: postCtx
                                 });
                             }
                         }
@@ -336,8 +351,31 @@ export default function Notifications() {
                                 )}
                             </div>
 
+                            {/* Post Preview */}
+                            {notif.postContext && (
+                                <Link to={`/post/${notif.postContext.postId}`} className="shrink-0 ml-3">
+                                    <div className="h-12 w-12 rounded bg-secondary overflow-hidden border border-border">
+                                        {notif.postContext.mediaUrl ? (
+                                            notif.postContext.mediaType === 'video' ? (
+                                                <div className="h-full w-full flex items-center justify-center bg-black">
+                                                    <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                                                </div>
+                                            ) : (
+                                                <img src={normalizeAssetUrl(notif.postContext.mediaUrl)} alt="Post" className="h-full w-full object-cover" />
+                                            )
+                                        ) : (
+                                            <div className="h-full w-full flex items-center justify-center p-1 text-[10px] text-muted-foreground bg-muted">
+                                                <span className="line-clamp-2 leading-tight">
+                                                    {notif.postContext.text || 'Post'}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </Link>
+                            )}
+
                             {/* Icon Indicator */}
-                            <div className="shrink-0 text-muted-foreground/30">
+                            <div className="shrink-0 text-muted-foreground/30 flex items-center">
                                 {notif.type === 'comment' && <MessageSquare className="h-4 w-4" />}
                                 {notif.type === 'like' && <Heart className="h-4 w-4" />}
                                 {(notif.type === 'follow_request' || notif.type === 'new_follower') && <User className="h-4 w-4" />}
