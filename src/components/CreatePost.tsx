@@ -38,10 +38,10 @@ export default function CreatePost() {
 
             // If user selected a file, upload to S3 first
             if (selectedFile) {
-                // Check file size (30MB limit)
-                const maxSize = 30 * 1024 * 1024; // 30MB in bytes
+                // Check file size (10MB limit to avoid 413 server errors)
+                const maxSize = 30 * 1024 * 1024; // 10MB in bytes
                 if (selectedFile.size > maxSize) {
-                    setError(`File size (${(selectedFile.size / 1024 / 1024).toFixed(2)}MB) exceeds the 30MB limit. Please choose a smaller file.`);
+                    setError(`File size (${(selectedFile.size / 1024 / 1024).toFixed(2)}MB) exceeds the 10MB limit. Please choose a smaller file.`);
                     setIsUploading(false);
                     return;
                 }
@@ -107,7 +107,7 @@ export default function CreatePost() {
         if (!content.trim()) return;
         setIsRefining(true);
         try {
-            const resp = await api.post('/AI/refine-post-text',  content );
+            const resp = await api.post('/AI/refine-post-text', content);
             const refined = resp?.data?.refinedText ?? resp?.data?.text ?? resp?.data;
             if (typeof refined === 'string' && refined.trim()) setContent(refined.trim());
         } catch (err) {
@@ -164,7 +164,7 @@ export default function CreatePost() {
                             </div>
                         )}
                         {postError && (
-                             <div className="flex items-center gap-2 text-red-500 text-xs mt-2 bg-red-50 p-2 rounded">
+                            <div className="flex items-center gap-2 text-red-500 text-xs mt-2 bg-red-50 p-2 rounded">
                                 <AlertCircle className="h-3 w-3" />
                                 {postError}
                             </div>
@@ -181,9 +181,9 @@ export default function CreatePost() {
                                         onChange={(e) => {
                                             const file = e.target.files?.[0];
                                             if (file) {
-                                                const maxSize = 30 * 1024 * 1024; // 30MB
+                                                const maxSize = 10 * 1024 * 1024; // 10MB
                                                 if (file.size > maxSize) {
-                                                    setError(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 30MB limit.`);
+                                                    setError(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 10MB limit.`);
                                                     e.target.value = ''; // Reset input
                                                     return;
                                                 }
@@ -203,9 +203,9 @@ export default function CreatePost() {
                                         onChange={(e) => {
                                             const file = e.target.files?.[0];
                                             if (file) {
-                                                const maxSize = 30 * 1024 * 1024; // 30MB
+                                                const maxSize = 10 * 1024 * 1024; // 10MB
                                                 if (file.size > maxSize) {
-                                                    setError(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 30MB limit.`);
+                                                    setError(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 10MB limit.`);
                                                     e.target.value = ''; // Reset input
                                                     return;
                                                 }
