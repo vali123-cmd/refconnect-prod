@@ -21,7 +21,7 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
     const { likePost, unlikePost, deletePost, fetchPosts, isPostLiked } = usePost();
     const { checkContent } = useAIModeration();
 
-  
+
     const isLikedByMe = post.likes?.some(l => l.userId === user?.id) || false;
 
     const [isLiked, setIsLiked] = useState<boolean>(typeof initialIsLiked === 'boolean' ? initialIsLiked : isLikedByMe);
@@ -97,7 +97,7 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
             }
         };
         fetchAuthor();
-        
+
         const checkLiked = async () => {
             if (!post.postId) return;
             try {
@@ -105,7 +105,7 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
                 if (!mounted) return;
                 setIsLiked(liked);
             } catch (err) {
-                
+
             }
         };
         checkLiked();
@@ -134,7 +134,7 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
-                    {isAuthor && (
+                    {(isAuthor || user?.role === 'admin') && (
                         <button onClick={handleDelete} className="text-muted-foreground hover:text-red-500 transition-colors p-1">
                             <Trash2 className="h-4 w-4" />
                         </button>
@@ -151,9 +151,9 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
             <p className="mb-3 whitespace-pre-wrap">{post.description}</p>
 
             {isEditing && (
-                <form onSubmit={async (e) => { 
-                    e.preventDefault(); 
-                    setIsSaving(true); 
+                <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setIsSaving(true);
                     try {
                         // AI moderation check
                         const moderationResult = await checkContent(editData.description);
@@ -164,7 +164,7 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
                         }
 
                         let finalEditData = { ...editData };
-                        
+
                         // If user selected a new media file, upload to S3 first
                         if (selectedMediaFile) {
                             // Check file size (30MB limit)
@@ -178,24 +178,24 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
                             setIsUploading(true);
                             const fd = new FormData();
                             fd.append('file', selectedMediaFile);
-                            const upResp = await api.post('/Files/upload', fd, { 
-                                headers: { 'Content-Type': 'multipart/form-data' } 
+                            const upResp = await api.post('/Files/upload', fd, {
+                                headers: { 'Content-Type': 'multipart/form-data' }
                             });
                             const returned = upResp?.data;
                             const s3Url = returned?.Url || returned?.url;
                             console.log('Files/upload returned S3 URL:', s3Url);
-                            
+
                             finalEditData.mediaUrl = s3Url;
                             finalEditData.mediaType = selectedMediaFile.type.startsWith('image/') ? 'image' : 'video';
                             setIsUploading(false);
                         }
-                        
-                        await api.put(`/posts/${post.postId}`, finalEditData); 
-                        setIsEditing(false); 
+
+                        await api.put(`/posts/${post.postId}`, finalEditData);
+                        setIsEditing(false);
                         setSelectedMediaFile(null);
                         setMediaPreviewUrl(null);
-                        try { await fetchPosts(); } catch {} 
-                    } catch (err: any) { 
+                        try { await fetchPosts(); } catch { }
+                    } catch (err: any) {
                         console.error('Failed to update post', err);
                         console.error('Error details:', {
                             message: err.message,
@@ -204,9 +204,9 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
                             statusText: err.response?.statusText
                         });
                         setIsUploading(false);
-                    } finally { 
-                        setIsSaving(false); 
-                    } 
+                    } finally {
+                        setIsSaving(false);
+                    }
                 }} className="space-y-3 mb-3">
                     <div>
                         <label className="block text-sm font-medium text-muted-foreground mb-1">Description</label>
@@ -215,9 +215,9 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
                     <div>
                         <label className="block text-sm font-medium text-muted-foreground mb-1">Upload New Media</label>
                         <div className="flex gap-2">
-                            <input 
-                                type="file" 
-                                accept="image/*" 
+                            <input
+                                type="file"
+                                accept="image/*"
                                 id={`edit-image-${post.postId}`}
                                 className="hidden"
                                 onChange={(e) => {
@@ -232,10 +232,10 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
                                 <Image className="h-4 w-4" />
                                 Image
                             </label>
-                            
-                            <input 
-                                type="file" 
-                                accept="video/*" 
+
+                            <input
+                                type="file"
+                                accept="video/*"
                                 id={`edit-video-${post.postId}`}
                                 className="hidden"
                                 onChange={(e) => {
@@ -252,7 +252,7 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
                             </label>
                         </div>
                     </div>
-                    
+
                     {/* Preview selected media */}
                     {mediaPreviewUrl && selectedMediaFile && (
                         <div className="relative rounded-lg overflow-hidden border border-border">
@@ -273,7 +273,7 @@ export default function PostCard({ post, initialIsLiked, initialLikesCount }: Po
                             </button>
                         </div>
                     )}
-                    
+
                     {/* Show current media if no new file selected */}
                     {!mediaPreviewUrl && editData.mediaUrl && (
                         <div>
