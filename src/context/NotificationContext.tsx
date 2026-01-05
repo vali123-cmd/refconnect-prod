@@ -84,7 +84,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
                 if (Array.isArray(followersData)) {
                     for (const f of followersData) {
-                        const followedAt = f.followedAt ? new Date(f.followedAt) : new Date();
+                        // Fallback to epoch if missing to prevent "always new" issue
+                        const followedAt = f.followedAt ? new Date(f.followedAt) : new Date(0);
                         let u = f.follower || f;
                         if (!u.userName && f.followerId) {
                             try {
