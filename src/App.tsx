@@ -5,6 +5,7 @@ import { PostProvider } from './context/PostContext';
 import { FollowProvider } from './context/FollowContext';
 import { MatchProvider } from './context/MatchContext';
 import { ChatProvider } from './context/ChatContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { Layout } from './layouts/Layout';
 
 import Home from './pages/Home';
@@ -31,40 +32,42 @@ function App() {
       <AuthProvider>
         <PostProvider>
           <FollowProvider>
-            <ChatProvider>
-              <MatchProvider>
-                <Routes>
-                  <Route element={<Layout />}>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
+            <NotificationProvider>
+              <ChatProvider>
+                <MatchProvider>
+                  <Routes>
+                    <Route element={<Layout />}>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/register" element={<Register />} />
 
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/profile/edit" element={<EditProfile />} />
-                    <Route path="/profile/:id" element={<ProfileView />} />
-                    <Route path="/profile/:id/matches" element={<ProfileMatches />} />
-                    <Route path="/search" element={<SearchUsers />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/profile/edit" element={<EditProfile />} />
+                      <Route path="/profile/:id" element={<ProfileView />} />
+                      <Route path="/profile/:id/matches" element={<ProfileMatches />} />
+                      <Route path="/search" element={<SearchUsers />} />
 
-                    <Route path="/groups" element={<Groups />} />
-                    <Route path="/groups/create" element={<CreateGroup />} />
-                    <Route path="/groups/:id" element={<GroupDetail />} />
+                      <Route path="/groups" element={<Groups />} />
+                      <Route path="/groups/create" element={<CreateGroup />} />
+                      <Route path="/groups/:id" element={<GroupDetail />} />
 
-                    <Route path="/matches" element={<Matches />} />
-                    <Route path="/delegations" element={<Delegations />} />
-                    <Route path="/notifications" element={<Notifications />} />
+                      <Route path="/matches" element={<Matches />} />
+                      <Route path="/delegations" element={<Delegations />} />
+                      <Route path="/notifications" element={<Notifications />} />
 
-                    <Route path="/admin" element={<AdminDashboard />} />
+                      <Route path="/admin" element={<AdminDashboard />} />
 
-                    <Route path="/chats" element={<Chats />} />
-                    <Route path="/chats/:chatId" element={<Chats />} />
-                    <Route path="/post/:postId" element={<PostPage />} />
+                      <Route path="/chats" element={<Chats />} />
+                      <Route path="/chats/:chatId" element={<Chats />} />
+                      <Route path="/post/:postId" element={<PostPage />} />
 
-                    {/* Add more routes here later */}
-                    <Route path="*" element={<div className="p-8 text-center text-muted-foreground">404 - Page Not Found</div>} />
-                  </Route>
-                </Routes>
-              </MatchProvider>
-            </ChatProvider>
+                      {/* Add more routes here later */}
+                      <Route path="*" element={<div className="p-8 text-center text-muted-foreground">404 - Page Not Found</div>} />
+                    </Route>
+                  </Routes>
+                </MatchProvider>
+              </ChatProvider>
+            </NotificationProvider>
           </FollowProvider>
         </PostProvider>
       </AuthProvider>
