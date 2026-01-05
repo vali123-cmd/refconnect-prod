@@ -3,6 +3,7 @@ import { useAuth, api } from '../context/AuthContext';
 import { usePost } from '../context/PostContext';
 import { useAIModeration } from '../hooks/useAIModeration';
 import { Image, Video, Send, AlertCircle, X } from 'lucide-react';
+import { compressImage } from '../lib/imageUtils';
 
 export default function CreatePost() {
     const { user } = useAuth();
@@ -38,16 +39,26 @@ export default function CreatePost() {
 
             // If user selected a file, upload to S3 first
             if (selectedFile) {
-                // Check file size (10MB limit to avoid 413 server errors)
-                const maxSize = 30 * 1024 * 1024; // 10MB in bytes
-                if (selectedFile.size > maxSize) {
-                    setError(`File size (${(selectedFile.size / 1024 / 1024).toFixed(2)}MB) exceeds the 10MB limit. Please choose a smaller file.`);
+                // Compress if image (client-side resize to avoid 413)
+                let fileToUpload = selectedFile;
+                if (selectedFile.type.startsWith('image/')) {
+                    try {
+                        fileToUpload = await compressImage(selectedFile);
+                    } catch (e) {
+                        console.error('Compression failed, using original', e);
+                    }
+                }
+
+                // Check file size (10MB limit)
+                const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+                if (fileToUpload.size > maxSize) {
+                    setError(`File size (${(fileToUpload.size / 1024 / 1024).toFixed(2)}MB) exceeds the 10MB limit. Please choose a smaller file.`);
                     setIsUploading(false);
                     return;
                 }
 
                 const fd = new FormData();
-                fd.append('file', selectedFile);
+                fd.append('file', fileToUpload);
 
                 try {
                     console.log('Uploading media to /Files/upload...');
@@ -61,9 +72,9 @@ export default function CreatePost() {
                         console.log('Files/upload returned S3 URL:', s3Url);
                         mediaUrl = s3Url;
                         // Detect media type from file
-                        if (selectedFile.type.startsWith('image/')) {
+                        if (fileToUpload.type.startsWith('image/')) {
                             mediaType = 'image';
-                        } else if (selectedFile.type.startsWith('video/')) {
+                        } else if (fileToUpload.type.startsWith('video/')) {
                             mediaType = 'video';
                         }
                     } else {
@@ -78,7 +89,11 @@ export default function CreatePost() {
                         statusText: err.response?.statusText
                     });
                     const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Unknown error';
-                    setError(`Failed to upload media: ${errorMsg}`);
+                    if (err.response?.status === 413) {
+                        setError('File is still too large for the server. Please try a smaller file.');
+                    } else {
+                        setError(`Failed to upload media: ${errorMsg}`);
+                    }
                     setIsUploading(false);
                     return;
                 }
