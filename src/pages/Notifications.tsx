@@ -8,7 +8,7 @@ import { PostDto, CommentDto } from '../types';
 
 interface NotificationItem {
     id: string;
-    type: 'follow_request' | 'comment' | 'like';
+    type: 'follow_request' | 'comment' | 'like' | 'new_follower';
     date: Date;
     actor: {
         id: string;
@@ -23,7 +23,7 @@ interface NotificationItem {
 
 export default function Notifications() {
     const { user } = useAuth();
-    const { getPendingRequests, acceptFollowRequest, rejectFollowRequest } = useFollow();
+    const { getPendingRequests, getFollowers, acceptFollowRequest, rejectFollowRequest } = useFollow();
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -36,12 +36,10 @@ export default function Notifications() {
             try {
                 const allNotifications: NotificationItem[] = [];
 
-                // 1. Fetch Follow Requests
+                // 1. Fetch Follow Requests (Private profiles)
                 try {
                     const requests = await getPendingRequests();
-                    // Enrich requests
                     const enrichedRequests = await Promise.all(requests.map(async (req: any) => {
-                        // Attempt to extract or fetch user
                         let u = req.follower || req.user;
                         if (!u && req.followerId) {
                             try {
@@ -69,54 +67,87 @@ export default function Notifications() {
                     console.error("Failed to fetch follow requests", e);
                 }
 
-                // 2. Fetch My Posts (and their comments/likes)
+                // 2. Fetch Followers (Public profiles / Accepted requests) -> "New Follower"
                 try {
-                    // We specifically want extended profile to see MY posts
-                    const profileRes = await api.get(`/profiles/${user.id}/extended`);
-                    const posts: PostDto[] = profileRes.data.posts || [];
+                    // Try to get followers (this might return a list of profiles or Follow objects)
+                    // Assuming getFollowers returns UserDto[] or similar
+                    // We need 'followedAt' to make it a meaningful notification, but getFollowers might just return users.
+                    // If it just returns users, we can't really date it, but we can show it at least.
+                    // Let's check api.get('/follows/followers/{id}') typically returns dates in DTO?
+                    // The types.ts FollowDto has followedAt.
 
-                    // Extract Comments
+                    // Direct API call to ensure we get metadata like followedAt if possible
+                    const followersRes = await api.get(`/Follows/${user.id}/followers`);
+                    const followersData = followersRes.data; // Expecting FollowDto[] or UserDto[]
+
+                    if (Array.isArray(followersData)) {
+                        for (const f of followersData) {
+                            // If f is UserDto, we don't have date. If f is FollowDto, we do.
+                            // Let's assume best effort.
+                            const followedAt = f.followedAt ? new Date(f.followedAt) : new Date(); // Fallback to now if missing
+
+                            // For a clearer notification, might filter very old ones? 
+                            // But for now show all to ensure user sees them as requested.
+
+                            let u = f.follower || f;
+                            // If we have to fetch user details
+                            if (!u.userName && f.followerId) {
+                                try {
+                                    const p = await api.get(`/profiles/${f.followerId}`);
+                                    u = p.data;
+                                } catch { }
+                            }
+
+                            if (u) {
+                                allNotifications.push({
+                                    id: `new_follower_${u.id}`,
+                                    type: 'new_follower',
+                                    date: followedAt,
+                                    actor: {
+                                        id: u.id,
+                                        name: u.firstName ? `${u.firstName} ${u.lastName}`.trim() : u.userName,
+                                        username: u.userName,
+                                        imageUrl: u.profileImageUrl
+                                    },
+                                    entityId: u.id
+                                });
+                            }
+                        }
+                    }
+
+                } catch (e) {
+                    console.error("Failed to fetch followers", e);
+                }
+
+                // 3. Fetch My Posts (Comments & Likes)
+                try {
+                    const profileRes = await api.get(`/profiles/${user.id}/extended`);
+                    const posts: any[] = profileRes.data.posts || [];
+
                     for (const post of posts) {
+                        // COMMENTS
                         if (post.comments && Array.isArray(post.comments)) {
                             for (const comment of post.comments) {
-                                // Skip my own comments
                                 if (comment.userId === user.id) continue;
-
-                                // We need actor details. CommentDto usually has basic userId.
-                                // If backend returns Comment including User object, great.
-                                // If not, we might need to fetch user?
-                                // Let's check 'types.ts' CommentDto. it DOES NOT have User object.
-                                // But `Comment` interface DOES.
-                                // Let's assume the extended profile *might* populate it or we fetch?
-                                // Fetching profile for every comment is heavy.
-                                // OPTIMIZATION: Collect unique userIds and fetch them in batch (or individually in parallel).
-
-                                // Actually, let's see if we can get away with just userId or if standard DTO includes it.
-                                // Inspecting types.ts: UserDto is NOT in CommentDto.
-                                // But backend *might* send it.
-                                // Safer: Fetch user details for these comments.
 
                                 let actorName = 'User';
                                 let actorUsername = 'user';
                                 let actorImage = '';
 
-                                const c: any = comment; // cast to any to check for extra fields
+                                const c: any = comment;
                                 if (c.user || c.User) {
                                     const u = c.user || c.User;
                                     actorName = u.fullName || u.firstName ? `${u.firstName} ${u.lastName}` : u.userName;
                                     actorUsername = u.userName;
                                     actorImage = u.profileImageUrl;
                                 } else {
-                                    // Must fetch
                                     try {
                                         const uRes = await api.get(`/profiles/${comment.userId}`);
                                         const u = uRes.data;
                                         actorName = u.fullName || `${u.firstName} ${u.lastName}`.trim();
                                         actorUsername = u.userName;
                                         actorImage = u.profileImageUrl;
-                                    } catch (e) {
-                                        // ignore
-                                    }
+                                    } catch (e) { }
                                 }
 
                                 allNotifications.push({
@@ -134,12 +165,67 @@ export default function Notifications() {
                                 });
                             }
                         }
-                    }
 
-                    // Extract Likes (if available in future)
-                    // Currently PostDto doesn't have likes list.
+                        // LIKES
+                        // If post.likes is missing or we want to be sure, we can try to fetch.
+                        // But let's check if the array exists first.
+                        let likesList = post.likes;
+
+                        if (!likesList || !Array.isArray(likesList) || likesList.length === 0) {
+                            // Attempt explicit fetch
+                            try {
+                                // "Guess" endpoint: /likes/post/{postId} or /posts/{postId}/likes
+                                // Base on 'types.ts' LikeDto etc.
+                                // Common pattern might be: GET /Like/post/{postId}
+                                const likesRes = await api.get(`/Like/post/${post.postId}`);
+                                likesList = likesRes.data;
+                            } catch (e) {
+                                // ignore
+                            }
+                        }
+
+                        if (likesList && Array.isArray(likesList)) {
+                            for (const like of likesList) {
+                                if (like.userId === user.id) continue;
+
+                                let actorName = 'User';
+                                let actorUsername = 'user';
+                                let actorImage = '';
+
+                                const l: any = like;
+                                // If endpoint returned just LikeDto { userId, postId, likedAt }, we need to fetch user
+                                if (l.user || l.User) {
+                                    const u = l.user || l.User;
+                                    actorName = u.fullName || u.firstName ? `${u.firstName} ${u.lastName}` : u.userName;
+                                    actorUsername = u.userName;
+                                    actorImage = u.profileImageUrl;
+                                } else {
+                                    try {
+                                        const uRes = await api.get(`/profiles/${like.userId}`);
+                                        const u = uRes.data;
+                                        actorName = u.fullName || `${u.firstName} ${u.lastName}`.trim();
+                                        actorUsername = u.userName;
+                                        actorImage = u.profileImageUrl;
+                                    } catch (e) { }
+                                }
+
+                                allNotifications.push({
+                                    id: `${post.postId}_like_${like.userId}`,
+                                    type: 'like',
+                                    date: new Date(like.likedAt),
+                                    actor: {
+                                        id: like.userId,
+                                        name: actorName,
+                                        username: actorUsername,
+                                        imageUrl: actorImage
+                                    },
+                                    entityId: post.postId
+                                });
+                            }
+                        }
+                    }
                 } catch (e) {
-                    console.error("Failed to fetch extended profile for notifications", e);
+                    console.error("Failed to fetch extended profile/posts for notifications", e);
                 }
 
                 // Sort by date desc
@@ -217,6 +303,7 @@ export default function Notifications() {
                                         </Link>
                                         {' '}
                                         {notif.type === 'follow_request' && <span className="text-muted-foreground">vrea să te urmărească.</span>}
+                                        {notif.type === 'new_follower' && <span className="text-muted-foreground">a început să te urmărească.</span>}
                                         {notif.type === 'comment' && <span className="text-muted-foreground">a comentat la postarea ta:</span>}
                                         {notif.type === 'like' && <span className="text-muted-foreground">ți-a apreciat postarea.</span>}
                                     </div>
@@ -253,7 +340,7 @@ export default function Notifications() {
                             <div className="shrink-0 text-muted-foreground/30">
                                 {notif.type === 'comment' && <MessageSquare className="h-4 w-4" />}
                                 {notif.type === 'like' && <Heart className="h-4 w-4" />}
-                                {notif.type === 'follow_request' && <User className="h-4 w-4" />}
+                                {(notif.type === 'follow_request' || notif.type === 'new_follower') && <User className="h-4 w-4" />}
                             </div>
                         </div>
                     ))
