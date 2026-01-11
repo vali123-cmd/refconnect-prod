@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, api } from '../context/AuthContext';
 import { normalizeAssetUrl } from '../lib/utils';
+import { compressImage } from '../lib/imageUtils';
 import { UpdateUserDto } from '../types';
 import { ChevronLeft, Save } from 'lucide-react';
 
@@ -23,27 +24,27 @@ export default function EditProfile() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-   
-    
+
+
 
 
     useEffect(() => {
         return () => {
             if (previewUrl) {
-                try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+                try { URL.revokeObjectURL(previewUrl); } catch (e) { }
             }
         };
     }, [previewUrl]);
 
     useEffect(() => {
         if (!user?.id) return;
-        
+
         const fetchUserData = async () => {
             setIsFetching(true);
             try {
                 const resp = await api.get(`/Users/${user.id}`);
                 const userData = resp.data;
-                
+
                 // Map API response to UpdateUserDto shape
                 setFormData({
                     userName: userData.userName || '',
@@ -89,16 +90,16 @@ export default function EditProfile() {
             if (selectedFile) {
                 const fd = new FormData();
                 fd.append('file', selectedFile);
-               
+
                 try {
                     console.log('Uploading file to /Files/upload...');
-                    const upResp = await api.post('/Files/upload', fd, { 
-                        headers: { 'Content-Type': 'multipart/form-data' } 
+                    const upResp = await api.post('/Files/upload', fd, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
                     });
                     const returned = upResp?.data;
                     // Backend returns { Url: "s3-url-here" }
                     const s3Url = returned?.Url || returned?.url;
-                    
+
                     if (s3Url && typeof s3Url === 'string') {
                         console.log('Files.upload returned S3 URL:', s3Url);
                         // Store the S3 URL directly - this will be saved to the database
@@ -128,7 +129,7 @@ export default function EditProfile() {
         }
     };
 
-    
+
 
     return (
         <div className="space-y-6">
@@ -149,75 +150,80 @@ export default function EditProfile() {
                     </div>
                 </div>
             ) : (
-            <form onSubmit={handleSave} className="space-y-6">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="h-24 w-24 rounded-full bg-secondary flex items-center justify-center overflow-hidden border-2 border-border">
-                        {previewUrl ? (
-                            <img src={previewUrl} alt="Avatar preview" className="h-full w-full object-cover" />
-                        ) : formData.profileImageUrl ? (
-                            <img src={normalizeAssetUrl(formData.profileImageUrl)} alt="Avatar" className="h-full w-full object-cover" />
-                        ) : (
-                            <span className="text-xs text-muted-foreground p-2 text-center">No Image</span>
+                <form onSubmit={handleSave} className="space-y-6">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="h-24 w-24 rounded-full bg-secondary flex items-center justify-center overflow-hidden border-2 border-border">
+                            {previewUrl ? (
+                                <img src={previewUrl} alt="Avatar preview" className="h-full w-full object-cover" />
+                            ) : formData.profileImageUrl ? (
+                                <img src={normalizeAssetUrl(formData.profileImageUrl)} alt="Avatar" className="h-full w-full object-cover" />
+                            ) : (
+                                <span className="text-xs text-muted-foreground p-2 text-center">No Image</span>
+                            )}
+                        </div>
+                        <div className="text-sm text-primary font-medium">
+                            <label htmlFor="profileFile" className="cursor-pointer hover:underline">Change Profile Photo</label>
+                            <input id="profileFile" name="profileFile" type="file" accept="image/*" onChange={async (e) => {
+                                let file = e.target.files && e.target.files[0];
+                                if (file) {
+                                    try {
+                                        file = await compressImage(file);
+                                    } catch (err) {
+                                        console.error("Compression failed, using original", err);
+                                    }
+                                    setSelectedFile(file);
+                                    try { setPreviewUrl(URL.createObjectURL(file)); } catch (e) { setPreviewUrl(null); }
+                                }
+                            }} className="hidden" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {formError && (
+                            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{formError}</div>
                         )}
-                    </div>
-                    <div className="text-sm text-primary font-medium">
-                        <label htmlFor="profileFile" className="cursor-pointer hover:underline">Change Profile Photo</label>
-                        <input id="profileFile" name="profileFile" type="file" accept="image/*" onChange={(e) => {
-                            const file = e.target.files && e.target.files[0];
-                            if (file) {
-                                setSelectedFile(file);
-                                try { setPreviewUrl(URL.createObjectURL(file)); } catch (e) { setPreviewUrl(null); }
-                            }
-                        }} className="hidden" />
-                    </div>
-                </div>
 
-                <div className="space-y-4">
-                    {formError && (
-                        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{formError}</div>
-                    )}
-
-                    <div>
-                        <label htmlFor="userName" className="block text-sm font-medium text-foreground mb-1">User name</label>
-                        <input id="userName" name="userName" type="text" required className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm" value={formData.userName} onChange={handleChange} />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
                         <div>
-                            <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-1">First name</label>
-                            <input id="firstName" name="firstName" type="text" required className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm" value={formData.firstName} onChange={handleChange} />
+                            <label htmlFor="userName" className="block text-sm font-medium text-foreground mb-1">User name</label>
+                            <input id="userName" name="userName" type="text" required className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm" value={formData.userName} onChange={handleChange} />
                         </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                            <div>
+                                <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-1">First name</label>
+                                <input id="firstName" name="firstName" type="text" required className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm" value={formData.firstName} onChange={handleChange} />
+                            </div>
+                            <div>
+                                <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-1">Last name</label>
+                                <input id="lastName" name="lastName" type="text" required className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm" value={formData.lastName} onChange={handleChange} />
+                            </div>
+                        </div>
+
                         <div>
-                            <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-1">Last name</label>
-                            <input id="lastName" name="lastName" type="text" required className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm" value={formData.lastName} onChange={handleChange} />
+                            <label htmlFor="description" className="block text-sm font-medium text-foreground mb-1">Description</label>
+                            <textarea id="description" name="description" rows={3} className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm" value={formData.description} onChange={handleChange} placeholder="Tell people about yourself" />
+                        </div>
+
+                        {/* Profile picture is uploaded from local file; remove manual URL input */}
+
+                        <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card">
+                            <div>
+                                <span className="block text-sm font-medium">Public profile</span>
+                                <span className="text-xs text-muted-foreground">Allow anyone to see your posts</span>
+                            </div>
+                            <input type="checkbox" name="isProfilePublic" checked={formData.isProfilePublic} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" />
                         </div>
                     </div>
 
-                    <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-foreground mb-1">Description</label>
-                        <textarea id="description" name="description" rows={3} className="block w-full rounded-md border border-input bg-transparent px-3 py-2 text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:text-sm" value={formData.description} onChange={handleChange} placeholder="Tell people about yourself" />
-                    </div>
-
-                    {/* Profile picture is uploaded from local file; remove manual URL input */}
-
-                    <div className="flex items-center justify-between p-3 border border-border rounded-lg bg-card">
-                        <div>
-                            <span className="block text-sm font-medium">Public profile</span>
-                            <span className="text-xs text-muted-foreground">Allow anyone to see your posts</span>
-                        </div>
-                        <input type="checkbox" name="isProfilePublic" checked={formData.isProfilePublic} onChange={handleChange} className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" />
-                    </div>
-                </div>
-
-                <button type="submit" disabled={isLoading} className="w-full bg-foreground text-background py-2.5 rounded-lg font-medium hover:opacity-90 flex items-center justify-center gap-2">
-                    {isLoading ? 'Saving...' : (
-                        <>
-                            <Save className="h-4 w-4" />
-                            Save Changes
-                        </>
-                    )}
-                </button>
-            </form>
+                    <button type="submit" disabled={isLoading} className="w-full bg-foreground text-background py-2.5 rounded-lg font-medium hover:opacity-90 flex items-center justify-center gap-2">
+                        {isLoading ? 'Saving...' : (
+                            <>
+                                <Save className="h-4 w-4" />
+                                Save Changes
+                            </>
+                        )}
+                    </button>
+                </form>
             )}
         </div>
     );

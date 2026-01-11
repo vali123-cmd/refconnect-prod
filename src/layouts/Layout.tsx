@@ -5,9 +5,11 @@ import ConfirmLogoutModal from '../components/ConfirmLogoutModal';
 import { Home, Search, Users, Shield, User, Menu, LogOut, Bell, MessageCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { BackgroundGradientAnimation } from '../components/ui/background-gradient-animation';
+import { useNotification } from '../context/NotificationContext';
 
 export const Layout = () => {
     const { user, logout } = useAuth();
+    const { unreadCount } = useNotification();
     const location = useLocation();
     const navigate = useNavigate();
     const [showLogoutModal, setShowLogoutModal] = React.useState(false);
@@ -36,7 +38,14 @@ export const Layout = () => {
                                 <Link to="/matches" className={cn("text-sm font-medium transition-colors hover:text-yellow-500", isActive('/matches') ? "text-yellow-500" : "text-gray-300")}>Meciuri</Link>
                                 <Link to="/delegations" className={cn("text-sm font-medium transition-colors hover:text-yellow-500", isActive('/delegations') ? "text-yellow-500" : "text-gray-300")}>Delegări</Link>
                                 <Link to="/groups" className={cn("text-sm font-medium transition-colors hover:text-yellow-500", isActive('/groups') ? "text-yellow-500" : "text-gray-300")}>Grupuri</Link>
-                                <Link to="/notifications" className={cn("text-sm font-medium transition-colors hover:text-yellow-500", isActive('/notifications') ? "text-yellow-500" : "text-gray-300")}>Notificări</Link>
+                                <Link to="/notifications" className={cn("text-sm font-medium transition-colors hover:text-yellow-500 relative", isActive('/notifications') ? "text-yellow-500" : "text-gray-300")}>
+                                    Notificări
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-2 -right-3 h-4 w-4 rounded-full bg-yellow-500 text-black text-[10px] font-bold flex items-center justify-center">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </Link>
                                 <Link to="/chats" className={cn("text-sm font-medium transition-colors hover:text-yellow-500", isActive('/chats') ? "text-yellow-500" : "text-gray-300")}>Mesaje</Link>
                             </>
                         )}
@@ -103,8 +112,15 @@ export const Layout = () => {
                                 <Users className="h-6 w-6" />
                                 <span className="text-[10px]">Grupuri</span>
                             </Link>
-                            <Link to="/notifications" className={cn("flex flex-col items-center gap-1", isActive('/notifications') ? "text-yellow-500" : "text-gray-400")}>
-                                <Bell className="h-6 w-6" />
+                            <Link to="/notifications" className={cn("flex flex-col items-center gap-1 relative", isActive('/notifications') ? "text-yellow-500" : "text-gray-400")}>
+                                <div className="relative">
+                                    <Bell className="h-6 w-6" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-yellow-500 text-black text-[8px] font-bold flex items-center justify-center">
+                                            {unreadCount > 9 ? '9+' : unreadCount}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className="text-[10px]">Notificări</span>
                             </Link>
                             <Link to="/chats" className={cn("flex flex-col items-center gap-1", isActive('/chats') ? "text-yellow-500" : "text-gray-400")}>

@@ -233,7 +233,7 @@ export default function CommentsModal({ open, onClose, postId, initialComments }
 
                 <div className="p-4 border-t border-border">
                     <div className="flex gap-2">
-                        <input value={newComment} onChange={(e) => setNewComment(e.target.value)} className="flex-1 rounded-md border border-input px-3 py-2 text-sm" placeholder="Write a comment..." />
+                        <input value={newComment} onChange={(e) => setNewComment(e.target.value)} className="flex-1 rounded-md border border-input px-3 py-2 text-sm text-black" placeholder="Write a comment..." />
                         <button onClick={handleAdd} className="px-3 py-2 bg-primary text-primary-foreground rounded-md">Send</button>
                     </div>
                 </div>
