@@ -122,7 +122,7 @@ export default function CommentsModal({ open, onClose, postId, initialComments }
 
         try {
             const added = await addComment(postId, newComment.trim());
-            if (added) {
+                if (added) {
                 // Ensure the newly added comment has a readable user/name for immediate display
                 let enriched = { ...added } as any;
                 // If backend returned user info, prefer it. Otherwise try to fetch profile for the userId
@@ -140,7 +140,16 @@ export default function CommentsModal({ open, onClose, postId, initialComments }
                     }
                 }
                 if (!enriched.createdAt) enriched.createdAt = new Date().toISOString();
-                setComments(prev => [enriched, ...prev]);
+                // Prevent duplicate comments when the posts cache has already been updated
+                setComments(prev => {
+                    try {
+                        const exists = prev.some(c => c.commentId && enriched.commentId && c.commentId === enriched.commentId);
+                        if (exists) return prev;
+                    } catch (e) {
+                        // fallback to naive prepend if something goes wrong
+                    }
+                    return [enriched, ...prev];
+                });
                 setNewComment('');
             }
         } catch (err) {
