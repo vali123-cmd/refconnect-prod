@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Shield } from 'lucide-react';
+import { parseApiError } from '../lib/utils';
 
 export default function Register() {
     const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ export default function Register() {
     });
     const [isLoading, setIsLoading] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
     const navigate = useNavigate();
     const { register } = useAuth();
 
@@ -30,6 +32,7 @@ export default function Register() {
         setIsLoading(true);
         try {
             setFormError(null);
+            setFieldErrors({});
             await register(
                 formData.userName,
                 formData.firstName,
@@ -41,9 +44,9 @@ export default function Register() {
             navigate('/');
         } catch (err: any) {
             console.error('Register failed', err);
-            // Try to extract a helpful message from the server response
-            const serverMsg = err?.response?.data?.message || err?.response?.data || err?.message;
-            setFormError(typeof serverMsg === 'string' ? serverMsg : JSON.stringify(serverMsg));
+            const parsed = parseApiError(err);
+            setFormError(parsed.message || 'A apărut o eroare');
+            setFieldErrors(parsed.fieldErrors || {});
         } finally {
             setIsLoading(false);
         }
@@ -77,6 +80,9 @@ export default function Register() {
                                 value={formData.userName}
                                 onChange={handleChange}
                             />
+                            {fieldErrors.userName && (
+                                <p className="mt-1 text-sm text-red-600">{fieldErrors.userName[0]}</p>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
@@ -94,6 +100,9 @@ export default function Register() {
                                     value={formData.firstName}
                                     onChange={handleChange}
                                 />
+                                {fieldErrors.firstname && (
+                                    <p className="mt-1 text-sm text-red-600">{fieldErrors.firstname[0]}</p>
+                                )}
                             </div>
                             <div>
                                 <label htmlFor="lastName" className="block text-sm font-medium text-muted-foreground mb-1">
@@ -109,6 +118,9 @@ export default function Register() {
                                     value={formData.lastName}
                                     onChange={handleChange}
                                 />
+                                {fieldErrors.lastname && (
+                                    <p className="mt-1 text-sm text-red-600">{fieldErrors.lastname[0]}</p>
+                                )}
                             </div>
                         </div>
 
@@ -127,6 +139,9 @@ export default function Register() {
                                 value={formData.email}
                                 onChange={handleChange}
                             />
+                            {fieldErrors.email && (
+                                <p className="mt-1 text-sm text-red-600">{fieldErrors.email[0]}</p>
+                            )}
                         </div>
 
                         {/* role selection removed - backend assigns default role */}
@@ -145,6 +160,9 @@ export default function Register() {
                                 value={formData.password}
                                 onChange={handleChange}
                             />
+                            {fieldErrors.password && (
+                                <p className="mt-1 text-sm text-red-600">{fieldErrors.password[0]}</p>
+                            )}
                         </div>
                         <div>
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-muted-foreground mb-1">

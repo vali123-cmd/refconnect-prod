@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Shield } from 'lucide-react';
+import { parseApiError } from '../lib/utils';
 
 export default function Login() {
     const [email, setEmail] = useState('');
@@ -9,15 +10,27 @@ export default function Login() {
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+    const [serverError, setServerError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
+    const getFieldError = (name: string) => {
+        const key = name.toLowerCase();
+        return fieldErrors[key]?.[0] ?? null;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setServerError(null);
+        setFieldErrors({});
         try {
             await login(email, password);
             navigate('/');
         } catch (error) {
             console.error('Login failed', error);
+            const parsed = parseApiError(error);
+            setServerError(parsed.message || 'Eroare la autentificare');
+            setFieldErrors(parsed.fieldErrors || {});
         } finally {
             setIsLoading(false);
         }
@@ -37,6 +50,9 @@ export default function Login() {
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                    {serverError && (
+                        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</div>
+                    )}
                     <div className="space-y-4 rounded-md shadow-sm">
                         <div>
                             <label htmlFor="email-address" className="block text-sm font-medium text-muted-foreground mb-1">
@@ -53,6 +69,9 @@ export default function Login() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                             />
+                            {getFieldError('email') && (
+                                <p className="mt-1 text-sm text-red-600">{getFieldError('email')}</p>
+                            )}
                         </div>
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-muted-foreground mb-1">
@@ -69,6 +88,9 @@ export default function Login() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
+                            {getFieldError('password') && (
+                                <p className="mt-1 text-sm text-red-600">{getFieldError('password')}</p>
+                            )}
                         </div>
                     </div>
 

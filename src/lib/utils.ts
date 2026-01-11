@@ -11,7 +11,7 @@ export function cn(...inputs: ClassValue[]) {
 export function normalizeAssetUrl(url?: string | null) {
     if (!url) return url || '';
     if (typeof url !== 'string') return String(url);
-    // already absolute - return as-is (e.g., S3 URLs)
+
     if (/^https?:\/\//i.test(url)) {
         console.log('normalizeAssetUrl: URL is already absolute, returning as-is:', url);
         return url;
@@ -38,11 +38,63 @@ export function isUserActive(user: any): boolean {
     const firstName = (user.firstName || '').toLowerCase();
     const lastName = (user.lastName || '').toLowerCase();
 
-    // Check if username starts with 'deleted_'
+
     if (userName.startsWith('deleted_')) return false;
 
-    // Check if name is exactly 'Deleted User' (backend convention)
+
     if (firstName === 'deleted' && lastName === 'user') return false;
 
     return true;
+}
+
+
+export function parseApiError(err: any): { message?: string; fieldErrors?: Record<string, string[]> } {
+    try {
+        const result: { message?: string; fieldErrors?: Record<string, string[]> } = {};
+        const res = err?.response?.data;
+
+        if (!res) {
+            result.message = err?.message || 'A apărut o eroare neașteptată';
+            return result;
+        }
+
+        if (typeof res === 'string') {
+            result.message = res;
+            return result;
+        }
+
+        const message = res.errorMessage || res.error || res.message || res.Message || res.title || res.detail;
+        if (message && typeof message === 'string') result.message = message;
+
+        if (res.errors && typeof res.errors === 'object') {
+            result.fieldErrors = {};
+      
+            Object.keys(res.errors).forEach((k) => {
+                const v = res.errors[k];
+                if (Array.isArray(v)) result.fieldErrors![k.toLowerCase()] = v.map((x) => String(x));
+                else result.fieldErrors![k.toLowerCase()] = [String(v)];
+            });
+            return result;
+        }
+
+
+        if (res.ModelState && typeof res.ModelState === 'object') {
+            result.fieldErrors = {};
+            Object.keys(res.ModelState).forEach((k) => {
+                const v = res.ModelState[k];
+                if (Array.isArray(v)) result.fieldErrors![k.toLowerCase()] = v.map((x) => String(x));
+                else result.fieldErrors![k.toLowerCase()] = [String(v)];
+            });
+            return result;
+        }
+
+        
+        if (!result.message) {
+            if (typeof res === 'object') result.message = JSON.stringify(res);
+            else result.message = String(res);
+        }
+        return result;
+    } catch (e) {
+        return { message: err?.message || 'A apărut o eroare neașteptată' };
+    }
 }
