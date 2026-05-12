@@ -1,46 +1,40 @@
-# Getting Started with Create React App
+# 哨 RefConnect
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+**A micro-social media platform and assignment tracker built specifically for sports referees.**
 
-## Available Scripts
+RefConnect bridges the communication gap for sports officials by providing a centralized, secure hub to track upcoming game assignments, chat in real-time, and analyze controversial game decisions with peers. 
 
-In the project directory, you can run:
+## ✨ Key Features
 
-### `npm start`
+* **Assignment Tracking:** A centralized dashboard where referees can view their upcoming matches, locations, and crew details.
+* **Micro-Social Feed:** A dynamic feed dedicated to reviewing and discussing complex or controversial play-calls safely and professionally.
+* **Real-Time Chat:** Instant messaging capabilities for referee crews to coordinate before and after games.
+* **Responsive Design:** Optimized for both desktop and mobile so referees can check assignments on the go.
+* **AI Detection of foul language**: We are using a Groq model for evaluating posts and comments that use foul language to prevent them from getting posted.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+---
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## 🛠️ Tech Stack
 
-### `npm test`
+**Frontend:**
+* React
+* TypeScript
+* CSS / Styled Components (Update this if you used Tailwind, Material UI, etc.)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+**Backend:**
+* .NET (C#)
+* Entity Framework Core
+* RESTful API Architecture
 
-### `npm run build`
+**Infrastructure & Database:**
+* AWS (Amazon Web Services) for cloud hosting and deployment
+* SQL Database (e.g., PostgreSQL / SQL Server)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+---
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Backend: https://github.com/vali123-cmd/RefConnect
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Authors: https://www.linkedin.com/in/valentin-nicolae-danciu-073276300/ 
+         https://www.linkedin.com/in/andrei-luca-48a17a331/
 
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+Special thanks to Benegui Cezara, our amazing teacher that guided us throughout developing this project.
